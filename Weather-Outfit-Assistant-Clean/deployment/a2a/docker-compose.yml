@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # Weather Agent Service (Port 8001)
+  weather-agent:
+    build:
+      context: ../../
+      dockerfile: deployment/a2a/Dockerfile
+    image: weather-outfit-adk:latest
+    container_name: weather-agent-a2a
+    ports:
+      - "8001:8001"
+    environment:
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY:-}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+    command: python deployment/a2a/weather_service/app.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/.well-known/agent.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - a2a-network
+
+  # Stylist Agent Service (Port 8002)
+  stylist-agent:
+    build:
+      context: ../../
+      dockerfile: deployment/a2a/Dockerfile
+    image: weather-outfit-adk:latest
+    container_name: stylist-agent-a2a
+    ports:
+      - "8002:8002"
+    environment:
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+    command: python deployment/a2a/stylist_service/app.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/.well-known/agent.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - a2a-network
+
+  # Activity Agent Service (Port 8003)
+  activity-agent:
+    build:
+      context: ../../
+      dockerfile: deployment/a2a/Dockerfile
+    image: weather-outfit-adk:latest
+    container_name: activity-agent-a2a
+    ports:
+      - "8003:8003"
+    environment:
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+    command: python deployment/a2a/activity_service/app.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/.well-known/agent.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - a2a-network
+
+  # Safety Agent Service (Port 8004)
+  safety-agent:
+    build:
+      context: ../../
+      dockerfile: deployment/a2a/Dockerfile
+    image: weather-outfit-adk:latest
+    container_name: safety-agent-a2a
+    ports:
+      - "8004:8004"
+    environment:
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+    command: python deployment/a2a/safety_service/app.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/.well-known/agent.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - a2a-network
+
+  # Coach Agent Service - Orchestrator (Port 8000)
+  coach-agent:
+    build:
+      context: ../../
+      dockerfile: deployment/a2a/Dockerfile
+    image: weather-outfit-adk:latest
+    container_name: coach-agent-a2a
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+      - WEATHER_SERVICE_URL=http://weather-agent:8001
+      - STYLIST_SERVICE_URL=http://stylist-agent:8002
+      - ACTIVITY_SERVICE_URL=http://activity-agent:8003
+      - SAFETY_SERVICE_URL=http://safety-agent:8004
+    command: python deployment/a2a/coach_service/app.py
+    depends_on:
+      weather-agent:
+        condition: service_healthy
+      stylist-agent:
+        condition: service_healthy
+      activity-agent:
+        condition: service_healthy
+      safety-agent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/.well-known/agent.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - a2a-network
+
+networks:
+  a2a-network:
+    driver: bridge
