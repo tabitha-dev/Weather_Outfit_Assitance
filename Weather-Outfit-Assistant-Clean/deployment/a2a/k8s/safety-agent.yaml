@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: safety-agent
+  namespace: weather-outfit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: safety-agent
+  template:
+    metadata:
+      labels:
+        app: safety-agent
+        service: safety
+    spec:
+      containers:
+      - name: safety-agent
+        image: gcr.io/PROJECT_ID/weather-outfit-adk:latest
+        command: ["python", "deployment/a2a/safety_service/app.py"]
+        ports:
+        - containerPort: 8004
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "PROJECT_ID"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: safety-agent
+  namespace: weather-outfit
+spec:
+  selector:
+    app: safety-agent
+  ports:
+  - port: 8004
+    targetPort: 8004
+  type: ClusterIP
